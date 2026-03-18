@@ -3,9 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>Metamorphoses - Camera Kit</title>
+    <title>Metamorphoses</title>
     <style>
-      :root { --snap-yellow: #FFFC00; }
+      :root { --accent-color: #FFFC00; }
       * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
       
       body, html { 
@@ -17,28 +17,57 @@
       #camera-view { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
       #camera-view canvas { width: 100% !important; height: 100% !important; object-fit: cover !important; }
 
-      /* --- INTERFACE --- */
       .ui-overlay {
         position: fixed; bottom: 0; left: 0; width: 100%;
-        padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 20px); /* Un peu plus d'espace en bas */
-        z-index: 10; display: flex; flex-direction: column; align-items: center;
+        padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 20px);
+        z-index: 10;
+        background: linear-gradient(transparent, rgba(0,0,0,0.8));
       }
+
       .lens-carousel {
-        display: flex; gap: 12px; overflow-x: auto; width: 100%;
-        padding: 10px 50% 10px 50%; scroll-snap-type: x mandatory;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        overflow-x: auto;
+        width: 100%;
+        padding: 40px 50%; /* 50% de padding pour centrer le premier et dernier */
+        scroll-snap-type: x mandatory;
         scrollbar-width: none;
+        scroll-behavior: smooth;
       }
       .lens-carousel::-webkit-scrollbar { display: none; }
+      
       .lens-item {
-        flex: 0 0 60px; height: 60px; border-radius: 50%;
-        background: rgba(0, 0, 0, 0.3); border: 1.5px solid rgba(255, 255, 255, 0.5);
-        display: flex; align-items: center; justify-content: center;
-        scroll-snap-align: center; transition: transform 0.2s;
-        backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-        overflow: hidden; cursor: pointer;
+        flex: 0 0 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1.5px solid rgba(255, 255, 255, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        scroll-snap-align: center;
+        transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.3s, background 0.3s;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        cursor: pointer;
       }
-      .lens-item.active { transform: scale(1.15); border-color: var(--snap-yellow); border-width: 2px; }
-      .lens-item img { width: 100%; height: 100%; object-fit: cover; }
+      
+      /* L'élément sélectionné devient beaucoup plus gros */
+      .lens-item.active { 
+        transform: scale(1.5); 
+        border-color: var(--accent-color);
+        border-width: 2px;
+        background: rgba(255, 255, 255, 0.2);
+        z-index: 2;
+      }
+      
+      .lens-item img { 
+        width: 100%; 
+        height: 100%; 
+        border-radius: 50%;
+        object-fit: cover; 
+      }
     </style>
     <script type="module" crossorigin src="./assets/index-wSTAN8BN.js"></script>
   </head>
@@ -49,8 +78,51 @@
     </div>
 
     <div class="ui-overlay">
-      <div class="lens-carousel" id="lens-carousel"></div>
+      <div class="lens-carousel" id="lens-carousel">
+        </div>
     </div>
-
+
+    <script>
+      const carousel = document.getElementById('lens-carousel');
+
+      // Fonction pour mettre à jour l'élément actif au centre
+      const updateActiveLens = () => {
+        const items = document.querySelectorAll('.lens-item');
+        const carouselCenter = carousel.offsetWidth / 2 + carousel.scrollLeft;
+
+        let closestItem = null;
+        let minDistance = Infinity;
+
+        items.forEach(item => {
+          const itemCenter = item.offsetLeft + item.offsetWidth / 2;
+          const distance = Math.abs(carouselCenter - itemCenter);
+
+          if (distance < minDistance) {
+            minDistance = distance;
+            closestItem = item;
+          }
+        });
+
+        items.forEach(item => item.classList.remove('active'));
+        if (closestItem) {
+          closestItem.classList.add('active');
+          // Optionnel : déclencher l'événement de changement de lens ici si nécessaire
+        }
+      };
+
+      // Écoute le défilement
+      carousel.addEventListener('scroll', updateActiveLens);
+      
+      // Permet de cliquer sur une icône pour la centrer
+      carousel.addEventListener('click', (e) => {
+        const item = e.target.closest('.lens-item');
+        if (item) {
+          item.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+      });
+
+      // Initialisation au chargement (avec un petit délai pour attendre l'injection JS)
+      setTimeout(updateActiveLens, 500);
+    </script>
   </body>
 </html>
