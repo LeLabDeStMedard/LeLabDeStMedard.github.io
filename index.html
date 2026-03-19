@@ -30,7 +30,7 @@
         gap: 15px;
         overflow-x: auto;
         width: 100%;
-        padding: 40px 50%; /* Garde le centrage */
+        padding: 40px 50%;
         scroll-snap-type: x mandatory;
         scrollbar-width: none;
         scroll-behavior: smooth;
@@ -78,8 +78,8 @@
     </div>
 
     <div class="ui-overlay">
-      <div class="lens-carousel" id="lens-carousel">
-          </div>
+      <div id="lens-carousel" class="lens-carousel">
+        </div>
     </div>
 
     <script>
@@ -110,23 +110,27 @@
           items.forEach(item => item.classList.remove('active'));
           closestItem.classList.add('active');
           
-          // Dispatch d'un événement personnalisé si votre script de filtre 
-          // a besoin de savoir quel filtre est actif
-          closestItem.dispatchEvent(new CustomEvent('lensSelected', { bubbles: true }));
+          // CRUCIAL : On simule un clic pour forcer le script principal à charger le filtre
+          closestItem.click();
         }
       };
 
-      // Force le premier filtre au démarrage
-      const selectInitialLens = () => {
-        const items = document.querySelectorAll('.lens-item');
-        if (items.length > 0) {
-          // On centre le premier élément
-          items[0].scrollIntoView({ inline: 'center' });
-          // On déclenche manuellement la mise à jour visuelle
-          updateActiveLens();
+      // Tente d'activer le premier filtre dès qu'il est disponible dans le DOM
+      const initFirstFilter = () => {
+        const firstItem = document.querySelector('.lens-item');
+        
+        if (firstItem) {
+          // 1. Centrer visuellement
+          firstItem.scrollIntoView({ inline: 'center', block: 'nearest' });
+          
+          // 2. Simuler un clic physique pour que le moteur JS active l'effet
+          setTimeout(() => {
+            firstItem.click();
+            updateActiveLens();
+          }, 300); // Petit délai pour laisser le moteur de rendu prêt
         } else {
-          // Si les items ne sont pas encore là (injection JS lente), on réessaie
-          setTimeout(selectInitialLens, 100);
+          // Si le JS n'a pas encore injecté les filtres, on réessaie dans 100ms
+          setTimeout(initFirstFilter, 100);
         }
       };
 
@@ -139,8 +143,8 @@
         }
       });
 
-      // Lancement de l'initialisation
-      window.addEventListener('load', selectInitialLens);
+      // Lancer la détection au démarrage
+      window.addEventListener('load', initFirstFilter);
     </script>
   </body>
 </html>
