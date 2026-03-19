@@ -19,7 +19,7 @@
 
       .ui-overlay {
         position: fixed; bottom: 0; left: 0; width: 100%;
-        padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 20px);
+        padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 30px);
         z-index: 10;
         background: linear-gradient(transparent, rgba(0,0,0,0.8));
       }
@@ -30,10 +30,11 @@
         gap: 20px;
         overflow-x: auto;
         width: 100%;
-        padding: 40px 50% !important; 
+        padding: 20px 50% !important; 
         scroll-snap-type: x mandatory;
         scrollbar-width: none;
         scroll-behavior: smooth;
+        position: relative;
       }
       .lens-carousel::-webkit-scrollbar { display: none; }
       
@@ -43,40 +44,40 @@
         height: 60px !important;
         border-radius: 50% !important;
         background: rgba(255, 255, 255, 0.1);
-        border: 1.5px solid rgba(255, 255, 255, 0.3) !important;
+        border: 1.5px solid rgba(255, 255, 255, 0.2) !important;
         display: flex;
         align-items: center;
         justify-content: center;
         scroll-snap-align: center;
         cursor: pointer;
         position: relative;
-        transition: border-color 0.3s;
+        transition: border-color 0.3s ease;
       }
       
-      /* État sélectionné : Bordure jaune + Point en dessous */
+      /* État sélectionné : On allume la bordure */
       .lens-item.active { 
         border-color: var(--accent-color) !important;
         border-width: 2px !important;
       }
 
-      /* Création du point jaune sous l'élément actif */
+      /* LE PETIT POINT JAUNE EN DESSOUS */
       .lens-item.active::after {
         content: '';
         position: absolute;
-        bottom: -12px; /* Ajustez la distance ici */
+        bottom: -15px; /* Position sous le logo */
         left: 50%;
         transform: translateX(-50%);
-        width: 6px;
-        height: 6px;
+        width: 5px;
+        height: 5px;
         background-color: var(--accent-color);
         border-radius: 50%;
-        box-shadow: 0 0 8px var(--accent-color);
-        animation: fadeIn 0.3s ease-out;
+        box-shadow: 0 0 5px var(--accent-color);
+        animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       }
 
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translate(-50%, 5px); }
-        to { opacity: 1; transform: translate(-50%, 0); }
+      @keyframes popIn {
+        0% { transform: translateX(-50%) scale(0); opacity: 0; }
+        100% { transform: translateX(-50%) scale(1); opacity: 1; }
       }
       
       .lens-item img { 
@@ -102,6 +103,7 @@
 
     <script>
       const carousel = document.getElementById('lens-carousel');
+      let isInitialised = false;
 
       const updateActiveLens = () => {
         const items = document.querySelectorAll('.lens-item');
@@ -127,22 +129,27 @@
         if (closest && !closest.classList.contains('active')) {
           items.forEach(i => i.classList.remove('active'));
           closest.classList.add('active');
-          // Déclenche l'activation du filtre
+          // Déclenche l'activation réelle du filtre via le script externe
           closest.click();
         }
       };
 
-      const initUI = () => {
-        const firstItem = document.querySelector('.lens-item');
-        if (firstItem) {
-          // Centre le premier élément au départ
-          firstItem.scrollIntoView({ inline: 'center' });
+      // Fonction pour forcer le démarrage sur le premier filtre
+      const startFirstFilter = () => {
+        const items = document.querySelectorAll('.lens-item');
+        if (items.length > 0 && !isInitialised) {
+          isInitialised = true;
+          // On centre immédiatement le premier
+          items[0].scrollIntoView({ inline: 'center', block: 'nearest' });
+          
+          // Petit délai pour simuler l'action utilisateur nécessaire au script de filtre
           setTimeout(() => {
-            firstItem.click();
+            items[0].click();
             updateActiveLens();
           }, 300);
-        } else {
-          setTimeout(initUI, 100);
+        } else if (!isInitialised) {
+          // On attend que le script externe injecte les éléments
+          setTimeout(startFirstFilter, 100);
         }
       };
 
@@ -157,7 +164,10 @@
         }
       });
 
-      window.addEventListener('load', initUI);
+      // Lancement automatique
+      window.addEventListener('load', startFirstFilter);
+      // Sécurité si les éléments arrivent très vite
+      setTimeout(startFirstFilter, 500);
     </script>
   </body>
 </html>
