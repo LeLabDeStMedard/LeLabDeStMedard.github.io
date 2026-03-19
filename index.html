@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>Metamorphoses</title>
+    <title>Metamorphoses - Accès Sécurisé</title>
     <style>
       :root { --accent-color: #FFFC00; }
       * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -14,6 +14,34 @@
         font-family: -apple-system, system-ui, sans-serif; 
       }
 
+      /* --- STYLE DU VERROUILLAGE --- */
+      #lock-screen {
+        position: fixed; inset: 0; background: #000;
+        z-index: 9999; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; color: white;
+        transition: opacity 0.5s ease, visibility 0.5s;
+      }
+      #lock-screen.hidden { opacity: 0; visibility: hidden; }
+
+      .lock-content { text-align: center; width: 80%; max-width: 300px; }
+      .lock-content h2 { font-weight: 300; margin-bottom: 20px; letter-spacing: 1px; }
+      
+      #password-input {
+        width: 100%; padding: 15px; border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1);
+        color: white; text-align: center; font-size: 1.2rem;
+        outline: none; margin-bottom: 15px;
+      }
+      #password-input:focus { border-color: var(--accent-color); }
+
+      #login-btn {
+        width: 100%; padding: 12px; border-radius: 12px;
+        border: none; background: var(--accent-color);
+        color: black; font-weight: bold; cursor: pointer;
+      }
+      .error-msg { color: #ff4444; font-size: 0.8rem; margin-top: 10px; display: none; }
+
+      /* --- STYLE DE L'INTERFACE EXISTANTE --- */
       #camera-view { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
       #camera-view canvas { width: 100% !important; height: 100% !important; object-fit: cover !important; }
 
@@ -25,73 +53,43 @@
       }
 
       .lens-carousel {
-        display: flex;
-        align-items: center;
-        gap: 20px;
-        overflow-x: auto;
-        width: 100%;
-        padding: 20px 50% !important; 
-        scroll-snap-type: x mandatory;
-        scrollbar-width: none;
-        scroll-behavior: smooth;
-        position: relative;
+        display: flex; align-items: center; gap: 20px; overflow-x: auto;
+        width: 100%; padding: 20px 50% !important; 
+        scroll-snap-type: x mandatory; scrollbar-width: none; scroll-behavior: smooth;
       }
       .lens-carousel::-webkit-scrollbar { display: none; }
       
       .lens-item {
-        flex: 0 0 60px !important;
-        width: 60px !important;
-        height: 60px !important;
-        border-radius: 50% !important;
-        background: rgba(255, 255, 255, 0.1);
+        flex: 0 0 60px !important; width: 60px !important; height: 60px !important;
+        border-radius: 50% !important; background: rgba(255, 255, 255, 0.1);
         border: 1.5px solid rgba(255, 255, 255, 0.2) !important;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        scroll-snap-align: center;
-        cursor: pointer;
-        position: relative;
-        transition: border-color 0.3s ease;
+        display: flex; align-items: center; justify-content: center;
+        scroll-snap-align: center; cursor: pointer; position: relative;
       }
       
-      /* État sélectionné : On allume la bordure */
-      .lens-item.active { 
-        border-color: var(--accent-color) !important;
-        border-width: 2px !important;
-      }
-
-      /* LE PETIT POINT JAUNE EN DESSOUS */
+      .lens-item.active { border-color: var(--accent-color) !important; border-width: 2px !important; }
       .lens-item.active::after {
-        content: '';
-        position: absolute;
-        bottom: -15px; /* Position sous le logo */
-        left: 50%;
-        transform: translateX(-50%);
-        width: 5px;
-        height: 5px;
-        background-color: var(--accent-color);
-        border-radius: 50%;
+        content: ''; position: absolute; bottom: -15px; left: 50%;
+        transform: translateX(-50%); width: 5px; height: 5px;
+        background-color: var(--accent-color); border-radius: 50%;
         box-shadow: 0 0 5px var(--accent-color);
-        animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      }
-
-      @keyframes popIn {
-        0% { transform: translateX(-50%) scale(0); opacity: 0; }
-        100% { transform: translateX(-50%) scale(1); opacity: 1; }
       }
       
-      .lens-item img { 
-        width: 100% !important; 
-        height: 100% !important; 
-        border-radius: 50% !important;
-        object-fit: cover !important; 
-        pointer-events: none;
-      }
+      .lens-item img { width: 100% !important; height: 100% !important; border-radius: 50% !important; object-fit: cover !important; pointer-events: none; }
     </style>
 
     <script type="module" crossorigin src="./assets/index-CnbVTm_E.js"></script>
   </head>
   <body>
+
+    <div id="lock-screen">
+      <div class="lock-content">
+        <h2>METAMORPHOSES</h2>
+        <input type="password" id="password-input" placeholder="Code d'accès" autofocus>
+        <button id="login-btn">Entrer</button>
+        <p id="error-msg" class="error-msg">Code incorrect. Réessayez.</p>
+      </div>
+    </div>
     
     <div id="camera-view">
       <div id="canvas-output"></div>
@@ -103,71 +101,65 @@
 
     <script>
       const carousel = document.getElementById('lens-carousel');
-      let isInitialised = false;
+      const lockScreen = document.getElementById('lock-screen');
+      const passInput = document.getElementById('password-input');
+      const loginBtn = document.getElementById('login-btn');
+      const errorMsg = document.getElementById('error-msg');
 
+      // --- LOGIQUE MOT DE PASSE ---
+      const ACCESS_CODE = "1234"; // MODIFIE TON CODE ICI
+
+      function checkPassword() {
+        if (passInput.value === ACCESS_CODE) {
+          lockScreen.classList.add('hidden');
+          startFirstFilter(); // On lance l'initialisation après déverrouillage
+        } else {
+          errorMsg.style.display = "block";
+          passInput.value = "";
+          passInput.focus();
+        }
+      }
+
+      loginBtn.addEventListener('click', checkPassword);
+      passInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkPassword(); });
+
+      // --- LOGIQUE CAROUSEL ---
       const updateActiveLens = () => {
         const items = document.querySelectorAll('.lens-item');
         if (items.length === 0) return;
-
-        const carouselRect = carousel.getBoundingClientRect();
-        const center = carouselRect.left + (carouselRect.width / 2);
+        const center = carousel.offsetWidth / 2 + carousel.scrollLeft;
 
         let closest = null;
         let minDistance = Infinity;
 
         items.forEach(item => {
-          const rect = item.getBoundingClientRect();
-          const itemCenter = rect.left + (rect.width / 2);
+          const itemCenter = item.offsetLeft + item.offsetWidth / 2;
           const dist = Math.abs(center - itemCenter);
-
-          if (dist < minDistance) {
-            minDistance = dist;
-            closest = item;
-          }
+          if (dist < minDistance) { minDistance = dist; closest = item; }
         });
 
         if (closest && !closest.classList.contains('active')) {
           items.forEach(i => i.classList.remove('active'));
           closest.classList.add('active');
-          // Déclenche l'activation réelle du filtre via le script externe
           closest.click();
         }
       };
 
-      // Fonction pour forcer le démarrage sur le premier filtre
       const startFirstFilter = () => {
         const items = document.querySelectorAll('.lens-item');
-        if (items.length > 0 && !isInitialised) {
-          isInitialised = true;
-          // On centre immédiatement le premier
-          items[0].scrollIntoView({ inline: 'center', block: 'nearest' });
-          
-          // Petit délai pour simuler l'action utilisateur nécessaire au script de filtre
-          setTimeout(() => {
-            items[0].click();
-            updateActiveLens();
-          }, 300);
-        } else if (!isInitialised) {
-          // On attend que le script externe injecte les éléments
+        if (items.length > 0) {
+          items[0].scrollIntoView({ inline: 'center' });
+          setTimeout(() => { items[0].click(); updateActiveLens(); }, 300);
+        } else {
           setTimeout(startFirstFilter, 100);
         }
       };
 
-      carousel.addEventListener('scroll', () => {
-        window.requestAnimationFrame(updateActiveLens);
-      });
-
+      carousel.addEventListener('scroll', () => window.requestAnimationFrame(updateActiveLens));
       carousel.addEventListener('click', (e) => {
         const item = e.target.closest('.lens-item');
-        if (item) {
-          item.scrollIntoView({ behavior: 'smooth', inline: 'center' });
-        }
+        if (item) item.scrollIntoView({ behavior: 'smooth', inline: 'center' });
       });
-
-      // Lancement automatique
-      window.addEventListener('load', startFirstFilter);
-      // Sécurité si les éléments arrivent très vite
-      setTimeout(startFirstFilter, 500);
     </script>
   </body>
 </html>
