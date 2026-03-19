@@ -27,39 +27,56 @@
       .lens-carousel {
         display: flex;
         align-items: center;
-        gap: 25px;
+        gap: 20px;
         overflow-x: auto;
         width: 100%;
-        padding: 60px 50% !important; 
+        padding: 40px 50% !important; 
         scroll-snap-type: x mandatory;
         scrollbar-width: none;
         scroll-behavior: smooth;
       }
       .lens-carousel::-webkit-scrollbar { display: none; }
       
-      /* Style de base des icônes */
       .lens-item {
         flex: 0 0 60px !important;
         width: 60px !important;
         height: 60px !important;
         border-radius: 50% !important;
         background: rgba(255, 255, 255, 0.1);
-        border: 2px solid rgba(255, 255, 255, 0.3) !important;
+        border: 1.5px solid rgba(255, 255, 255, 0.3) !important;
         display: flex;
         align-items: center;
         justify-content: center;
         scroll-snap-align: center;
-        transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
         cursor: pointer;
         position: relative;
+        transition: border-color 0.3s;
       }
       
-      /* FORCE L'AGRANDISSEMENT PERMANENT */
+      /* État sélectionné : Bordure jaune + Point en dessous */
       .lens-item.active { 
-        transform: scale(1.7) !important; 
         border-color: var(--accent-color) !important;
-        border-width: 3px !important;
-        z-index: 999 !important;
+        border-width: 2px !important;
+      }
+
+      /* Création du point jaune sous l'élément actif */
+      .lens-item.active::after {
+        content: '';
+        position: absolute;
+        bottom: -12px; /* Ajustez la distance ici */
+        left: 50%;
+        transform: translateX(-50%);
+        width: 6px;
+        height: 6px;
+        background-color: var(--accent-color);
+        border-radius: 50%;
+        box-shadow: 0 0 8px var(--accent-color);
+        animation: fadeIn 0.3s ease-out;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translate(-50%, 5px); }
+        to { opacity: 1; transform: translate(-50%, 0); }
       }
       
       .lens-item img { 
@@ -86,13 +103,12 @@
     <script>
       const carousel = document.getElementById('lens-carousel');
 
-      // Fonction de mise à jour de l'état "Actif"
-      const updateActiveState = () => {
+      const updateActiveLens = () => {
         const items = document.querySelectorAll('.lens-item');
         if (items.length === 0) return;
 
         const carouselRect = carousel.getBoundingClientRect();
-        const centerPoint = carouselRect.left + (carouselRect.width / 2);
+        const center = carouselRect.left + (carouselRect.width / 2);
 
         let closest = null;
         let minDistance = Infinity;
@@ -100,7 +116,7 @@
         items.forEach(item => {
           const rect = item.getBoundingClientRect();
           const itemCenter = rect.left + (rect.width / 2);
-          const dist = Math.abs(centerPoint - itemCenter);
+          const dist = Math.abs(center - itemCenter);
 
           if (dist < minDistance) {
             minDistance = dist;
@@ -111,27 +127,27 @@
         if (closest && !closest.classList.contains('active')) {
           items.forEach(i => i.classList.remove('active'));
           closest.classList.add('active');
-          // On clique pour activer le shader du filtre
+          // Déclenche l'activation du filtre
           closest.click();
         }
       };
 
-      // Initialisation répétée au début pour contrer l'injection JS tardive
-      const forceInit = () => {
-        const first = document.querySelector('.lens-item');
-        if (first) {
-          first.scrollIntoView({ inline: 'center', block: 'nearest' });
+      const initUI = () => {
+        const firstItem = document.querySelector('.lens-item');
+        if (firstItem) {
+          // Centre le premier élément au départ
+          firstItem.scrollIntoView({ inline: 'center' });
           setTimeout(() => {
-            first.click();
-            updateActiveState();
-          }, 200);
+            firstItem.click();
+            updateActiveLens();
+          }, 300);
         } else {
-          setTimeout(forceInit, 100);
+          setTimeout(initUI, 100);
         }
       };
 
       carousel.addEventListener('scroll', () => {
-        window.requestAnimationFrame(updateActiveState);
+        window.requestAnimationFrame(updateActiveLens);
       });
 
       carousel.addEventListener('click', (e) => {
@@ -141,10 +157,7 @@
         }
       });
 
-      // On lance dès que possible
-      window.addEventListener('load', forceInit);
-      // Sécurité si le 'load' est déjà passé
-      setTimeout(forceInit, 500);
+      window.addEventListener('load', initUI);
     </script>
   </body>
 </html>
