@@ -30,7 +30,7 @@
         gap: 15px;
         overflow-x: auto;
         width: 100%;
-        padding: 40px 50%; /* 50% de padding pour centrer le premier et dernier */
+        padding: 40px 50%; /* Garde le centrage */
         scroll-snap-type: x mandatory;
         scrollbar-width: none;
         scroll-behavior: smooth;
@@ -53,7 +53,6 @@
         cursor: pointer;
       }
       
-      /* L'élément sélectionné devient beaucoup plus gros */
       .lens-item.active { 
         transform: scale(1.5); 
         border-color: var(--accent-color);
@@ -68,7 +67,8 @@
         border-radius: 50%;
         object-fit: cover; 
       }
-    </style>
+    </style>
+
     <script type="module" crossorigin src="./assets/index-CnbVTm_E.js"></script>
   </head>
   <body>
@@ -79,22 +79,25 @@
 
     <div class="ui-overlay">
       <div class="lens-carousel" id="lens-carousel">
-        </div>
+          </div>
     </div>
 
     <script>
       const carousel = document.getElementById('lens-carousel');
 
-      // Fonction pour mettre à jour l'élément actif au centre
       const updateActiveLens = () => {
         const items = document.querySelectorAll('.lens-item');
-        const carouselCenter = carousel.offsetWidth / 2 + carousel.scrollLeft;
+        if (items.length === 0) return;
+
+        const carouselRect = carousel.getBoundingClientRect();
+        const carouselCenter = carouselRect.left + (carouselRect.width / 2);
 
         let closestItem = null;
         let minDistance = Infinity;
 
         items.forEach(item => {
-          const itemCenter = item.offsetLeft + item.offsetWidth / 2;
+          const rect = item.getBoundingClientRect();
+          const itemCenter = rect.left + (rect.width / 2);
           const distance = Math.abs(carouselCenter - itemCenter);
 
           if (distance < minDistance) {
@@ -103,26 +106,41 @@
           }
         });
 
-        items.forEach(item => item.classList.remove('active'));
-        if (closestItem) {
+        if (closestItem && !closestItem.classList.contains('active')) {
+          items.forEach(item => item.classList.remove('active'));
           closestItem.classList.add('active');
-          // Optionnel : déclencher l'événement de changement de lens ici si nécessaire
+          
+          // Dispatch d'un événement personnalisé si votre script de filtre 
+          // a besoin de savoir quel filtre est actif
+          closestItem.dispatchEvent(new CustomEvent('lensSelected', { bubbles: true }));
         }
       };
 
-      // Écoute le défilement
+      // Force le premier filtre au démarrage
+      const selectInitialLens = () => {
+        const items = document.querySelectorAll('.lens-item');
+        if (items.length > 0) {
+          // On centre le premier élément
+          items[0].scrollIntoView({ inline: 'center' });
+          // On déclenche manuellement la mise à jour visuelle
+          updateActiveLens();
+        } else {
+          // Si les items ne sont pas encore là (injection JS lente), on réessaie
+          setTimeout(selectInitialLens, 100);
+        }
+      };
+
       carousel.addEventListener('scroll', updateActiveLens);
       
-      // Permet de cliquer sur une icône pour la centrer
       carousel.addEventListener('click', (e) => {
         const item = e.target.closest('.lens-item');
         if (item) {
-          item.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+          item.scrollIntoView({ behavior: 'smooth', inline: 'center' });
         }
       });
 
-      // Initialisation au chargement (avec un petit délai pour attendre l'injection JS)
-      setTimeout(updateActiveLens, 500);
+      // Lancement de l'initialisation
+      window.addEventListener('load', selectInitialLens);
     </script>
   </body>
 </html>
